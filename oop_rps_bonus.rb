@@ -39,19 +39,6 @@ class Scissors
   end
 end
 
-class Spock
-  attr_reader :value, :initial
-
-  def initialize
-    @value = 'Spock'
-    @initial = 'V'
-  end
-
-  def beats?(other_move)
-    other_move.value == 'scissors' || other_move.value == 'rock'
-  end
-end
-
 class Lizard
   attr_reader :value, :initial
 
@@ -62,6 +49,19 @@ class Lizard
 
   def beats?(other_move)
     other_move.value == 'paper' || other_move.value == 'Spock'
+  end
+end
+
+class Spock
+  attr_reader :value, :initial
+
+  def initialize
+    @value = 'Spock'
+    @initial = 'V'
+  end
+
+  def beats?(other_move)
+    other_move.value == 'scissors' || other_move.value == 'rock'
   end
 end
 
@@ -195,7 +195,7 @@ class RPSGame
   attr_reader :exit_round, :moves
 
   def initialize
-    @moves = [Rock.new, Paper.new, Scissors.new, Spock.new, Lizard.new]
+    @moves = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new]
     @human = Human.new
     @computer = nil
     @exit_round = false
@@ -222,7 +222,7 @@ class RPSGame
   private
 
   def display_welcome_message
-    puts "Hi #{human.name}! Welcome to Rock, Paper, Scissors, Spock, Lizard!"
+    puts "Hi #{human.name}! Welcome to Rock, Paper, Scissors, Lizard, Spock!"
     puts "The first player to reach #{WINNING_SCORE} points is the winner!"
   end
 
@@ -352,7 +352,7 @@ class RPSGame
   end
 
   def display_goodbye_message
-    puts "Thanks for playing Rock, Paper, Scissors, Spock, Lizard. Good bye!"
+    puts "Thanks for playing Rock, Paper, Scissors, Lizard, Spock. Good bye!"
   end
 end
 
