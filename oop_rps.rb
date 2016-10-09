@@ -59,7 +59,7 @@ class Human < Player
   def choose
     choice = nil
     loop do
-      puts "PLease choose rock, paper, or scissors:"
+      puts "Please choose rock, paper, or scissors:"
       choice = gets.chomp
       break if Move::VALUES.include? choice
       puts "Sorry, invalid choice."
@@ -121,8 +121,8 @@ class RPSGame
       puts "Sorry, must be y or n."
     end
 
-    return false if answer.casecmp == 'n'
-    return true if answer.casecmp == 'y'
+    return false if answer.downcase == 'n'
+    return true if answer.downcase == 'y'
   end
 
   def play
