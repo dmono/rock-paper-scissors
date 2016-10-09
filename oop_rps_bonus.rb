@@ -1,100 +1,101 @@
 # frozen_string_literal: true
 
-class Move
-  VALUES = {
-    "r" => "rock",
-    "p" => "paper",
-    "s" => "scissors",
-    "v" => "Spock",
-    "l" => "lizard"
-  }.freeze
+class Rock
+  attr_reader :value, :initial
 
-  def initialize(value)
-    @value = value
+  def initialize
+    @value = 'rock'
+    @initial = 'R'
   end
 
-  def scissors?
-    @value == 'scissors'
-  end
-
-  def rock?
-    @value == 'rock'
-  end
-
-  def paper?
-    @value == 'paper'
-  end
-
-  def spock?
-    @value == 'Spock'
-  end
-
-  def lizard?
-    @value == 'lizard'
-  end
-
-  def >(other_move)
-    (rock? && other_move.scissors?) ||
-      (rock? && other_move.lizard?) ||
-      (paper? && other_move.rock?) ||
-      (paper? && other_move.spock?) ||
-      (scissors? && other_move.paper?) ||
-      (scissors? && other_move.lizard?) ||
-      (spock? && other_move.scissors?) ||
-      (spock? && other_move.rock?) ||
-      (lizard? && other_move.paper?) ||
-      (lizard? && other_move.spock?)
-  end
-
-  def <(other_move)
-    (rock? && other_move.paper?) ||
-      (rock? && other_move.spock?) ||
-      (paper? && other_move.scissors?) ||
-      (paper? && other_move.lizard?) ||
-      (scissors? && other_move.rock?) ||
-      (scissors? && other_move.spock?) ||
-      (spock? && other_move.lizard?) ||
-      (spock? && other_move.paper?) ||
-      (lizard? && other_move.scissors?) ||
-      (lizard? && other_move.rock?)
-  end
-
-  def to_s
-    @value
+  def beats?(other_move)
+    other_move.value == 'scissors' || other_move.value == 'lizard'
   end
 end
 
-class Score
-  attr_accessor :count
+class Paper
+  attr_reader :value, :initial
 
   def initialize
-    @count = 0
+    @value = 'paper'
+    @initial = 'P'
   end
 
-  def increment
-    self.count += 1
+  def beats?(other_move)
+    other_move.value == 'rock' || other_move.value == 'Spock'
+  end
+end
+
+class Scissors
+  attr_reader :value, :initial
+
+  def initialize
+    @value = 'scissors'
+    @initial = 'S'
   end
 
-  def reset
-    @count = 0
+  def beats?(other_move)
+    other_move.value == 'paper' || other_move.value == 'lizard'
   end
-  
-  def to_s
-    "#{count}"
+end
+
+class Spock
+  attr_reader :value, :initial
+
+  def initialize
+    @value = 'Spock'
+    @initial = 'V'
+  end
+
+  def beats?(other_move)
+    other_move.value == 'scissors' || other_move.value == 'rock'
+  end
+end
+
+class Lizard
+  attr_reader :value, :initial
+
+  def initialize
+    @value = 'lizard'
+    @initial = 'L'
+  end
+
+  def beats?(other_move)
+    other_move.value == 'paper' || other_move.value == 'Spock'
   end
 end
 
 class Player
-  attr_accessor :move, :name, :score, :move_history
+  attr_accessor :name, :score, :current_move, :move_history
 
   def initialize
     set_name
-    @score = Score.new
+    @score = 0
+    @current_move = nil
     @move_history = []
   end
-  
+
+  def increment_score
+    self.score += 1
+  end
+
+  def reset
+    self.score = 0
+    self.move_history = []
+    self.current_move = nil
+  end
+
   def update_move_history(move)
     @move_history << move
+  end
+
+  def favorite_move(move_history)
+    move_count = move_history.group_by { |move| move_history.count(move) }
+    if move_history.size > 1
+      return move_count[move_count.keys.max].first
+    end
+
+    nil
   end
 end
 
@@ -104,128 +105,217 @@ class Human < Player
     loop do
       puts "What's your name?"
       n = gets.chomp
-      break unless n.empty?
+      break unless n.strip.empty?
       puts "Sorry, must enter a value."
     end
     self.name = n
   end
 
-  def display_choices
-    choice_prompt = <<-MSG
-      Choose a letter:
-      R (rock)
-      P (paper)
-      S (scissors)
-      V (Spock)
-      L (lizard)
-    MSG
-    puts choice_prompt
+  def display_choices(moves)
+    puts "-" * 50
+    puts "Choose a letter:"
+    moves.each { |option| puts "  #{option.initial} (#{option.value})" }
   end
 
-  def choose
+  def choose(moves)
     choice = nil
     loop do
-      display_choices
-      choice = gets.chomp.downcase
-      break if Move::VALUES.keys.include? choice
+      display_choices(moves)
+      choice = gets.chomp.upcase
+      break if moves.map(&:initial).include? choice
       puts "Sorry, invalid choice."
     end
-    choice_value = Move::VALUES[choice]
-    update_move_history(choice_value)
-    self.move = Move.new(choice_value)
+    self.current_move = moves.select { |move| move.initial == choice }.first
+    update_move_history(current_move)
   end
 end
 
 class Computer < Player
   def set_name
-    self.name = ['R2D2', 'Hal', 'Chappie'].sample
+    self.name = self.class.name
   end
-  
-  def choice_probability
-    default = 100 / Move::VALUES.values.size  
-  end
+end
 
-  def choose
-    choice = Move::VALUES.values.sample
-    update_move_history(choice)
-    self.move = Move.new(choice)
+class Chappie < Computer
+  # Always tries to beat an opponent's favorite move.
+
+  def choose(moves, other_history)
+    fav_move = favorite_move(other_history)
+    self.current_move = if fav_move
+                          moves.select { |move| move.beats?(fav_move) }.first
+                        else
+                          moves.sample
+                        end
+
+    update_move_history(current_move)
+  end
+end
+
+class R2D2 < Computer
+  # Likes to throw Rock and Scissors. Hates Spock.
+
+  def choose(moves)
+    odds = rand(100)
+
+    move_options = {
+      "rock" => (0..35),
+      "paper" => (36..50),
+      "scissors" => (51..85),
+      "Spock" => (86..90),
+      "lizard" => (91..100)
+    }
+
+    weighted_key = move_options.select { |_, v| v.include?(odds) }.keys.first
+    self.current_move = moves.select { |move| move.value == weighted_key }.first
+    update_move_history(current_move)
+  end
+end
+
+class Hal < Computer
+  # Never throws the same move twice in a row.
+
+  def choose(moves)
+    selected_move = nil
+    loop do
+      selected_move = moves.sample
+      break if selected_move != move_history.last
+    end
+
+    self.current_move = selected_move
+    update_move_history(current_move)
   end
 end
 
 # Game Orchestration Engine
 
 class RPSGame
-  WINNING_SCORE = 3
+  WINNING_SCORE = 10
 
   attr_accessor :human, :computer
-  attr_reader :exit_round
+  attr_reader :exit_round, :moves
 
   def initialize
+    @moves = [Rock.new, Paper.new, Scissors.new, Spock.new, Lizard.new]
     @human = Human.new
-    @computer = Computer.new
+    @computer = nil
     @exit_round = false
   end
+
+  def play
+    loop do
+      display_welcome_message
+      choose_computer
+      loop do
+        select_moves(moves)
+        display_round_info
+        break if game_winner? || !play_next_round?
+      end
+      break if @exit_round
+      display_game_winner
+      display_move_history
+      break unless play_another_game?
+      reset
+    end
+    display_goodbye_message
+  end
+
+  private
 
   def display_welcome_message
     puts "Hi #{human.name}! Welcome to Rock, Paper, Scissors, Spock, Lizard!"
     puts "The first player to reach #{WINNING_SCORE} points is the winner!"
-    puts "Your opponent is #{computer.name}."
   end
 
-  def display_goodbye_message
-    puts "Thanks for playing Rock, Paper, Scissors, Spock, Lizard. Good bye!"
+  def assign_computer(choice)
+    case choice
+    when 'r'
+      self.computer = R2D2.new
+    when 'c'
+      self.computer = Chappie.new
+    when 'h'
+      self.computer = Hal.new
+    end
   end
 
-  def display_moves
-    puts "#{human.name} chose #{human.move}."
-    puts "#{computer.name} chose #{computer.move}."
+  def choose_computer
+    choice = ""
+    puts ""
+    puts "Select your opponent: (R)2D2, (C)happie, or (H)al"
+    loop do
+      choice = gets.chomp.downcase
+      break if %w(r c h).include? choice
+      puts "Sorry, that's not a valid answer. Please choose R, C or H."
+    end
+
+    assign_computer(choice)
+
+    puts "Great! #{computer.name} is ready to battle!"
+  end
+
+  def select_moves(moves)
+    human.choose(moves)
+
+    if computer.name == "Chappie"
+      computer.choose(moves, human.move_history)
+    else
+      computer.choose(moves)
+    end
   end
 
   def round_winner
-    if human.move > computer.move
-      human.score.increment
+    if human.current_move.beats?(computer.current_move)
+      human.increment_score
       return human
-    elsif computer.move > human.move
-      computer.score.increment
+    elsif computer.current_move.beats?(human.current_move)
+      computer.increment_score
       return computer
     end
-  
+
     nil
   end
 
-  def display_round_winner
+  def round_winner_output
     winner = round_winner
-    
     if winner == human
-      puts "#{human.name} won this round!"
+      "#{human.name} won this round!"
     elsif winner == computer
-      puts "#{computer.name} won this round!"
+      "#{computer.name} won this round!"
     else
-      puts "It's a tie!"
+      "It's a tie!"
     end
-  
-    display_score
   end
 
-  def display_score
-    puts "Score = #{human.name}: #{human.score} | #{computer.name}: #{computer.score}"
+  def score_output
+    "Score = #{human.name}: #{human.score} | #{computer.name}: #{computer.score}"
   end
-  
+
+  def display_round_info
+    puts "\nROUND RESULTS:"
+    puts "#{human.name} chose #{human.current_move.value}."
+    puts "#{computer.name} chose #{computer.current_move.value}."
+    puts round_winner_output
+    puts score_output
+    puts ""
+  end
+
   def game_winner?
-    human.score.count == WINNING_SCORE || computer.score.count == WINNING_SCORE
+    human.score == WINNING_SCORE || computer.score == WINNING_SCORE
   end
 
   def display_game_winner
-    if human.score.count == WINNING_SCORE
-      puts "Congratulations! #{human.name} has won the game!"
-    elsif computer.score.count == WINNING_SCORE
+    if human.score == WINNING_SCORE
+      puts "Congratulations #{human.name}! You won the game!"
+    elsif computer.score == WINNING_SCORE
       puts "Sorry, you lost! #{computer.name} is the winner of the game!"
     end
   end
 
   def display_move_history
-    puts "#{human.name}'s moves: #{human.move_history}"
-    puts "#{computer.name}'s moves: #{computer.move_history}"
+    puts "\nPLAYER MOVE HISTORY:"
+    puts "#{human.name}: #{human.move_history.map(&:value).join(', ')}"
+    puts ""
+    puts "#{computer.name}: #{computer.move_history.map(&:value).join(', ')}"
+    puts ""
   end
 
   def play_next_round?
@@ -241,44 +331,28 @@ class RPSGame
     @exit_round = true if answer == 'n'
     answer == 'y'
   end
-  
+
   def play_another_game?
     answer = nil
-    
+
     loop do
       puts "Play another game? (y/n)"
       answer = gets.chomp.downcase
       break if ['y', 'n'].include? answer
       puts "Sorry, must be y or n."
     end
-    
+
     answer == 'y'
   end
-  
+
   def reset
-    human.score.reset
-    computer.score.reset
+    human.reset
+    computer.reset
     computer.set_name
   end
 
-  def play
-    loop do
-      display_welcome_message
-      loop do
-        human.choose
-        computer.choose
-        display_moves
-        display_round_winner
-        break if game_winner?
-        break unless play_next_round?
-      end
-      break if @exit_round
-      display_game_winner
-      display_move_history
-      break unless play_another_game?
-      reset
-    end
-    display_goodbye_message
+  def display_goodbye_message
+    puts "Thanks for playing Rock, Paper, Scissors, Spock, Lizard. Good bye!"
   end
 end
 
