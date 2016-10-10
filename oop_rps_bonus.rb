@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
-class Rock
+class Move
   attr_reader :value, :initial
+end
 
+class Rock < Move
   def initialize
     @value = 'rock'
     @initial = 'R'
@@ -13,9 +15,7 @@ class Rock
   end
 end
 
-class Paper
-  attr_reader :value, :initial
-
+class Paper < Move
   def initialize
     @value = 'paper'
     @initial = 'P'
@@ -26,9 +26,7 @@ class Paper
   end
 end
 
-class Scissors
-  attr_reader :value, :initial
-
+class Scissors < Move
   def initialize
     @value = 'scissors'
     @initial = 'S'
@@ -39,9 +37,7 @@ class Scissors
   end
 end
 
-class Lizard
-  attr_reader :value, :initial
-
+class Lizard < Move
   def initialize
     @value = 'lizard'
     @initial = 'L'
@@ -52,9 +48,7 @@ class Lizard
   end
 end
 
-class Spock
-  attr_reader :value, :initial
-
+class Spock < Move
   def initialize
     @value = 'Spock'
     @initial = 'V'
@@ -125,7 +119,8 @@ class Human < Player
       break if moves.map(&:initial).include? choice
       puts "Sorry, invalid choice."
     end
-    self.current_move = moves.select { |move| move.initial == choice }.first
+
+    self.current_move = moves.detect { |move| move.initial == choice }
     update_move_history(current_move)
   end
 end
@@ -142,7 +137,7 @@ class Chappie < Computer
   def choose(moves, other_history)
     fav_move = favorite_move(other_history)
     self.current_move = if fav_move
-                          moves.select { |move| move.beats?(fav_move) }.first
+                          moves.detect { |move| move.beats?(fav_move) }
                         else
                           moves.sample
                         end
@@ -202,19 +197,22 @@ class RPSGame
   end
 
   def play
-    loop do
-      display_welcome_message
-      choose_computer
+    catch :quit do
       loop do
-        select_moves(moves)
-        display_round_info
-        break if game_winner? || !play_next_round?
+        display_welcome_message
+        choose_computer
+        loop do
+          select_moves(moves)
+          update_scores
+          display_round_info
+          break if game_winner?
+          play_next_round? # throws :quit if false
+        end
+        display_game_winner
+        display_move_history
+        break unless play_another_game?
+        reset
       end
-      break if @exit_round
-      display_game_winner
-      display_move_history
-      break unless play_another_game?
-      reset
     end
     display_goodbye_message
   end
@@ -264,14 +262,18 @@ class RPSGame
 
   def round_winner
     if human.current_move.beats?(computer.current_move)
-      human.increment_score
       return human
     elsif computer.current_move.beats?(human.current_move)
-      computer.increment_score
       return computer
     end
 
     nil
+  end
+
+  def update_scores
+    winner = round_winner
+    human.increment_score if winner == human
+    computer.increment_score if winner == computer
   end
 
   def round_winner_output
@@ -328,8 +330,7 @@ class RPSGame
       puts "Sorry, must be y or n."
     end
 
-    @exit_round = true if answer == 'n'
-    answer == 'y'
+    throw :quit if answer == 'n'
   end
 
   def play_another_game?
