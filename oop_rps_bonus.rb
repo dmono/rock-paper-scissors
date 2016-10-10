@@ -187,32 +187,31 @@ class RPSGame
   WINNING_SCORE = 10
 
   attr_accessor :human, :computer
-  attr_reader :exit_round, :moves
+  attr_reader :exit_round, :moves, :next_round
 
   def initialize
     @moves = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new]
     @human = Human.new
     @computer = nil
-    @exit_round = false
+    @next_round = false
   end
 
   def play
-    catch :quit do
+    loop do
+      display_welcome_message
+      choose_computer
       loop do
-        display_welcome_message
-        choose_computer
-        loop do
-          select_moves(moves)
-          update_scores
-          display_round_info
-          break if game_winner?
-          play_next_round? # throws :quit if false
-        end
-        display_game_winner
-        display_move_history
-        break unless play_another_game?
-        reset
+        select_moves(moves)
+        update_scores
+        display_round_info
+        @next_round = play_next_round?
+        break if game_winner? || !next_round
       end
+      break unless next_round
+      display_game_winner
+      display_move_history
+      break unless play_another_game?
+      reset
     end
     display_goodbye_message
   end
@@ -330,7 +329,7 @@ class RPSGame
       puts "Sorry, must be y or n."
     end
 
-    throw :quit if answer == 'n'
+    answer == 'y'
   end
 
   def play_another_game?
