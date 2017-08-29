@@ -1,6 +1,6 @@
 # Rock Paper Scissor Lizard Spock
 
-Rock paper scissors with a fun twist
+A terminal-based rock paper scissors game with a fun twist.
 
 ## Features
 
@@ -24,5 +24,5 @@ This version of rock paper scissors lets you pick an opponent, where each oppone
 
  ## How to Play
 
- Run the ruby executable 'play_rock_paper_scissors.rb' in the top directory.
+ Run the ruby executable `play_rock_paper_scissors.rb` in the top directory.
 
